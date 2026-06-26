@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react'
 import { AuthContext } from '../../context/AuthProvider'
+import { buildTaskState, calculateTaskCounts } from '../../utils/localStorage'
 
 const CreateTask = () => {
 
@@ -11,23 +12,42 @@ const CreateTask = () => {
     const [asignTo, setAsignTo] = useState('')
     const [category, setCategory] = useState('')
 
-    const [newTask, setNewTask] = useState({})
-
     const submitHandler = (e) => {
         e.preventDefault()
 
-        setNewTask({ taskTitle, taskDescription, taskDate, category, active: false, newTask: true, failed: false, completed: false })
+        if (!taskTitle.trim() || !taskDate || !asignTo.trim()) {
+            alert('Task title, date, and assign to are required')
+            return
+        }
 
-        const data = userData
+        const trimmedAssignTo = asignTo.trim().toLowerCase()
+        const matchedEmployee = userData?.find((employee) => employee.firstName.toLowerCase() === trimmedAssignTo)
 
-        data.forEach(function (elem) {
-            if (asignTo == elem.firstName) {
-                elem.tasks.push(newTask)
-                elem.taskCounts.newTask = elem.taskCounts.newTask + 1
-            }
+        if (!matchedEmployee) {
+            alert('Employee not found')
+            return
+        }
+
+        const task = buildTaskState('newTask', {
+            taskTitle,
+            taskDescription,
+            taskDate,
+            category,
         })
-        setUserData(data)
-        console.log(data);
+
+        setUserData((prevData) => (prevData || []).map((employee) => {
+            if (employee.firstName.toLowerCase() !== trimmedAssignTo) {
+                return employee
+            }
+
+            const updatedTasks = [...employee.tasks, task]
+
+            return {
+                ...employee,
+                tasks: updatedTasks,
+                taskCounts: calculateTaskCounts(updatedTasks),
+            }
+        }))
 
         setTaskTitle('')
         setCategory('')
@@ -52,6 +72,7 @@ const CreateTask = () => {
                             onChange={(e) => {
                                 setTaskTitle(e.target.value)
                             }}
+                            required
                             className='text-sm py-1 px-2 w-4/5 rounded outline-none bg-transparent border-[1px] border-gray-400 mb-4' type="text" placeholder='Make a UI design'
                         />
                     </div>
@@ -62,15 +83,17 @@ const CreateTask = () => {
                             onChange={(e) => {
                                 setTaskDate(e.target.value)
                             }}
+                            required
                             className='text-sm py-1 px-2 w-4/5 rounded outline-none bg-transparent border-[1px] border-gray-400 mb-4' type="date" />
                     </div>
                     <div>
-                        <h3 className='text-sm text-gray-300 mb-0.5'>Asign to</h3>
+                        <h3 className='text-sm text-gray-300 mb-0.5'>Assign to</h3>
                         <input
                             value={asignTo}
                             onChange={(e) => {
                                 setAsignTo(e.target.value)
                             }}
+                            required
                             className='text-sm py-1 px-2 w-4/5 rounded outline-none bg-transparent border-[1px] border-gray-400 mb-4' type="text" placeholder='employee name' />
                     </div>
                     <div>

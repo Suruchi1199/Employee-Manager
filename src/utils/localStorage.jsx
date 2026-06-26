@@ -209,13 +209,74 @@ const admin = [{
     "password": "123"
 }];
 
-export const setLocalStorage = ()=>{
-    localStorage.setItem('employees',JSON.stringify(employees))
-    localStorage.setItem('admin',JSON.stringify(admin))
+export const getTaskStatus = (task = {}) => {
+    if (task.completed) {
+        return 'completed'
+    }
+
+    if (task.failed) {
+        return 'failed'
+    }
+
+    if (task.newTask) {
+        return 'newTask'
+    }
+
+    if (task.active) {
+        return 'active'
+    }
+
+    return 'newTask'
 }
+
+export const buildTaskState = (status, task = {}) => ({
+    ...task,
+    active: status === 'active',
+    newTask: status === 'newTask',
+    completed: status === 'completed',
+    failed: status === 'failed',
+})
+export const calculateTaskCounts = (tasks = []) => tasks.reduce((counts, task) => {
+    const status = getTaskStatus(task)
+    counts[status] += 1
+    return counts
+}, {
+    active: 0,
+    newTask: 0,
+    completed: 0,
+    failed: 0,
+})
+
+export const normalizeEmployees = (employeeList = []) => employeeList.map((employee) => {
+    const normalizedTasks = (employee.tasks || []).map((task) => buildTaskState(getTaskStatus(task), task))
+
+    return {
+        ...employee,
+        tasks: normalizedTasks,
+        taskCounts: calculateTaskCounts(normalizedTasks),
+    }
+})
+
+export const setLocalStorage = ()=>{
+    if (!localStorage.getItem('employees')) {
+        localStorage.setItem('employees', JSON.stringify(employees))
+    }
+
+    if (!localStorage.getItem('admin')) {
+        localStorage.setItem('admin', JSON.stringify(admin))
+    }
+}
+
+export const updateEmployeesStorage = (employeeList = []) => {
+    localStorage.setItem('employees', JSON.stringify(employeeList))
+}
+
 export const getLocalStorage = ()=>{
     const employees = JSON.parse(localStorage.getItem('employees'))
     const admin = JSON.parse(localStorage.getItem('admin'))
 
-    return {employees,admin}
+    return {
+        employees: normalizeEmployees(employees || []),
+        admin: admin || [],
+    }
 }
